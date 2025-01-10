@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model volunteers {
+  id            String           @id @default(auto()) @map("_id") @db.ObjectId // MongoDB ObjectId
+  firstname     String
+  lastname      String
+  phonenumber   String
+  shifts        VolunteerShifts[]
+  @@map("volunteers")
+}
+
+model shifts {
+  id           String            @id @default(auto()) @map("_id") @db.ObjectId // MongoDB ObjectId
+  date         DateTime          // DateTime type for the shift's specific date
+  city         String
+  orphanage    String
+  times        String[]          // Array of time ranges
+  day          String            // Day of the week (e.g., "Monday", "Tuesday")
+  volunteers   VolunteerShifts[] // Array of volunteer IDs (using MongoDB IDs or user IDs)
+  createdAt    DateTime?         @default(now()) // Timestamp for when the shift was created
+  updatedAt    DateTime?         @updatedAt // Timestamp for when the shift was last updated
+  weekId       String            @db.ObjectId // Reference to the Weeks collection by ObjectId
+  week         weeks             @relation(fields: [weekId], references: [id]) // Relation to Weeks model
+  @@map("shifts")
+}
+
+model VolunteerShifts {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  volunteerId  String     @db.ObjectId
+  shiftId      String     @db.ObjectId
+  volunteer    volunteers  @relation(fields: [volunteerId], references: [id])
+  shift        shifts      @relation(fields: [shiftId], references: [id])
+  @@unique([volunteerId, shiftId]) // Ensures a volunteer can't be added to the same shift multiple times
+  @@map("volunteershifts")
+}
+
+model weeks {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId // MongoDB ObjectId
+  startDate    DateTime  // Start date of the week
+  endDate      DateTime
+  shifts       shifts[]  // Array of shifts for this week
+  createdAt    DateTime? @default(now()) // Timestamp for when the week was created
+  updatedAt    DateTime? @updatedAt // Timestamp for when the week was last updated
+  @@map("weeks")
+}
+
+model messages {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  createdAt     DateTime @db.Date
+  email         String
+  isArchived    Boolean
+  isRead        Boolean
+  isStarred     Boolean
+  message       String
+  name          String
+  needsResponse Boolean
+  phone         String
+}
+
+
+model profiles {
+  id                     String  @id @default(auto()) @map("_id") @db.ObjectId
+  email                  String   @unique
+  passwordHash           String
+  firstName              String? // Make it optional
+  lastName               String? // Make it optional
+  image                  String?
+  subscribedToNewsletter Boolean? @default(false) // Make it optional
+  isAdmin               Boolean   @default(false)
+  isVolunteerDirector   Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  isVolunteer           Boolean   @default(false)
+  lastLogin             DateTime? // Optional
+  
+}
+
+model VerificationCode {
+  id        String      @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  code      String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@map("verification-code")
+}
+
